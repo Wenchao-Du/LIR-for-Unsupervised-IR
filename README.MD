@@ -39,7 +39,7 @@ A simple script to test your model:
 <p align="center"><img src="Images/Fig-3.png" width="50%"> </p>
 
 ## Extending for other IR tasks
-**You could extend this work for other image restoration tasks, e.g., super-resolution, deblurring and so on. If so, you need to adjust some hyperparameters for them, and extra self-supervised modules also need to be altered. In this paper, we just provide a more general idea to process the unsupervised image restoration tasks via representation learning.
+** You could extend this work for other image restoration tasks, e.g., super-resolution, deblurring and so on. If so, you need to adjust some hyperparameters for them, and extra self-supervised modules also need to be altered. In this paper, we just provide a more general idea to process the unsupervised image restoration tasks via representation learning. **
 
 ## Acknowledge
 
