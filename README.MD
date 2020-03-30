@@ -16,7 +16,7 @@ Proposed method aims to learn the intermediate representation free of noise from
 
 ## Training
 
-* Prepare your dataset.  In our experiments, we used the [PascalVoc ](http://host.robots.ox.ac.uk/pascal/VOC/voc2012/) dataset to generate training data for Gaussian noise removal.
+* Prepare your dataset.  In our experiments, we used the [PascalVoc](http://host.robots.ox.ac.uk/pascal/VOC/voc2012/) dataset to generate training data for Gaussian noise removal.
 * Generate Gaussian or Poisson noise via skimage-lib.
 * update the data paths  in `config.py` and `utils.py` file.
 * Train your model by the `train.py` file.
