@@ -5,7 +5,7 @@
 This is an implementation for the paper **"Learning Invariant Representation for Unsupervised Image Restoration" (CVPR 2020)**, a simple and efficient framework for unsupervised image restoration, which is injected into the general domain transfer architecture. More details could be found in original paper.
   ## Network Architecture
 <p align="center"><img src="Images/framework.png" alt= "test" width="100%"> </p>
-Proposed method aims to learn the intermediate representation free of noise from corrupted input that $z_{x}$and align it with $z_{y}$ from clean image in the latent space $Z$. In addition, adversarial domain adaption and self-supervised constraints are introduced into our architecture. As shown in Fig1-(b), our method is more straight and effective than other domain-transfer methods, e.g., [CycleGAN](https://arxiv.org/abs/1703.10593), <a href="https://arxiv.org/abs/1703.00848">UNIT</a>, [DRIT](https://arxiv.org/abs/1808.00948)and so on.
+Proposed method aims to learn the intermediate representation free of noise from corrupted input that $z_{x}$and align it with $z_{y}$ from clean image in the latent space $Z$. In addition, adversarial domain adaption and self-supervised constraints are introduced into our architecture. As shown in Fig1-(b), our method is more straight and effective than other domain-transfer methods, e.g., <a href="https://arxiv.org/abs/1703.10593">CycleGAN</a>, <a href="https://arxiv.org/abs/1703.00848">UNIT</a>, <a href="https://arxiv.org/abs/1808.00948">DRIT</a> and so on.
 
 ## Prerequisites
 
@@ -29,13 +29,13 @@ A simple script to test your model:
 
 ## Results
 
-**Gaussian Noise Removal**
+* Gaussian Noise Removal
 
 <p align="center"><img src="Images/Fig-1.png" width="100%"> </p>
-**Poisson Noise Removal**
+* Poisson Noise Removal
 
 <p align="center"><img src="Images/Fig-2.png" width="100%"> </p>
-**Medical Image Denoising (Low-Dose CT)**
+* Medical Image Denoising (Low-Dose CT)
 
 <p align="center"><img src="Images/Fig-3.png" width="50%"> </p>
 ## Extending for other IR tasks
