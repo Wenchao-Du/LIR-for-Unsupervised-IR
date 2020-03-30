@@ -23,7 +23,7 @@ Proposed method aims to learn the intermediate representation free of noise from
 
 ## Test
 
-a simple script to test your model:
+A simple script to test your model:
 
 `python3 test.py`
 
