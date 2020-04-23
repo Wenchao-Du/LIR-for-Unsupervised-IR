@@ -10,15 +10,17 @@ import os
 import random
 import shutil
 import skimage.io as IO
+import skimage.data as data
 import matplotlib.pyplot as plt
 from skimage.util.noise import random_noise
-
+from skimage import data
 
 
 def add_noise(img, mode, var):
 	sigma = var
 	sigma_ = sigma / 255.
 	sigma_ = sigma_ * sigma_
+	if np.max(img) > 1:		img = img / 255.
 	if mode is None:
 		raise Exception('please add the noise type !!')
 	if var is None:
@@ -39,11 +41,12 @@ def add_bernoulli_noise(folder, distfolder):
 	if not os.path.exists(distfolder):
 		os.makedirs(distfolder)
 	filelist = os.listdir(folder)
-	plist = np.random.uniform(0.35, 1, len(filelist))
-	p=0.85
+	# plist = np.random.uniform(0.35, 1, len(filelist))
+	p=0.95
 	for index, file in enumerate(filelist):
 		filepath = folder + '\\' + file
-		img = IO.imread(filepath)
+		# img = IO.imread(filepath)
+		img = data.load(filepath)
 		if len(img.shape) < 3:
 			os.remove(filepath)
 			continue
@@ -92,20 +95,22 @@ def Imagetransform(srcfolder, destfolder, mode):
 	filelist = os.listdir(srcfolder)
 	count = len(filelist)
 	varlist = np.random.randint(5, 51, count)
+	IO.use_plugin('pil') # SET the specific plugin, default: imgio 
 	for i, sfile in enumerate(filelist):
 		print("{}, {}".format(i, varlist[i]))
 		filename = srcfolder + '\\' + sfile
 		mat = IO.imread(filename)
+		# mat = data.load(filename)
 		if len(mat.shape) < 3:
 			continue
 		w, h, c = mat.shape
 		if h < 64 or w < 64:
 			continue
-		noimat = add_noise(mat, mode, varlist[i])
+		noimat = add_noise(mat, mode, 50) # varlist[i]
 		# plt.figure('noi')
 		# plt.imshow(noimat, interpolation='nearest')
 		# plt.show()
-		outfile = destfolder + '\\' + sfile.replace('jpg', 'png')
+		outfile = destfolder + '\\' + sfile
 		IO.imsave(outfile, noimat)
 
 def checksize(folder, size):
@@ -125,3 +130,17 @@ def checksize(folder, size):
 			continue
 		else:
 			print(index)
+if __name__ == '__main__':
+	folder = 'J:\\Public_DataSet\\Kodak\\original'
+	folder1 = 'J:\\Public_DataSet\\train2017\\voctest'
+	folder2 = 'J:\\Public_DataSet\\train2017\\trainA_JPG'
+	folder3 = 'J:\\Public_DataSet\\SR_testing_datasets\\Kodak\\original'
+	destfolder = 'J:\\Public_DataSet\\SR_testing_datasets\\Kodak\\boulli_p8'
+	# splitlist(folder, folder1, folder2, folder3)
+	mode = 'gaussian'
+	# mode2 = 'poisson'
+	# Imagetransform(folder, destfolder, mode)
+	# file = 'J:\\Public_DataSet\\SR_testing_datasets\\Set5\\baby.png'
+	add_bernoulli_noise(folder3, destfolder)
+	# checksize(folder, 64)
+	

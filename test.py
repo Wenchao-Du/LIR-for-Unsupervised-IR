@@ -18,11 +18,11 @@ from skimage.measure import compare_psnr, compare_ssim
 import numpy as np
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--config', type=str, default='configs/unit_noise2clear-base.yaml', help="net configuration")
-parser.add_argument('--input', type=str, default = 'F:\\CBSD68-dataset\\CBSD68\\CropBSD68\\noisy25', help="input image path")
+parser.add_argument('--config', type=str, default='./configs/unit_noise2clear-bn-Deblur.yaml', help="net configuration")
+parser.add_argument('--input', type=str, default = '/mnt/725AAA345AA9F54F/Public_DataSet/cvpr16_deblur_study_real_dataset/real_dataset', help="input image path")
 
-parser.add_argument('--output_folder', type=str, default='./outputs/BSDN25-base', help="output image path")
-parser.add_argument('--checkpoint', type=str, default='outputs\\unit_noise2clear-base\\checkpoints\\gen_00300000.pt',
+parser.add_argument('--output_folder', type=str, default='./Deblur_Real', help="output image path")
+parser.add_argument('--checkpoint', type=str, default='/mnt/B290B95290B91E33/Dual_UNIT/outputs/unit_noise2clear-bn-Deblur/checkpoints/gen_00300000.pt',
                     help="checkpoint of autoencoders") 
 parser.add_argument('--seed', type=int, default=10, help="random seed")
 parser.add_argument('--trainer', type=str, default='UNIT', help="MUNIT|UNIT")
@@ -55,17 +55,57 @@ if not os.path.exists(opts.input):
 imglist = os.listdir(opts.input)
 transform = transforms.Compose([transforms.ToTensor()])
 for i, file in enumerate(imglist):
-    filepath = opts.input + '\\' + file
-    image = Variable(transform(Image.open(
-        filepath).convert('RGB')).unsqueeze(0).cuda())
-    # Start testing
+    if not file.endswith('.jpg'):
+        continue
+    print(file)
+    filepath = opts.input + '/' + file
+    image = transform(Image.open(
+        filepath).convert('RGB')).unsqueeze(0).cuda()
+        # Start testing
+    h,w = image.size(2),image.size(3)
+    if h > 800 or w > 800:
+        continue
+    pad_h = h % 4
+    pad_w = w % 4
+    image = image[:,:,0:h-pad_h, 0:w - pad_w]
     content = encode(image)
     outputs = decode(content)
     if not os.path.exists(opts.output_folder):
         os.makedirs(opts.output_folder)
     path = os.path.join(opts.output_folder, file)
     outputs_back = outputs.clone()
-    vutils.save_image(outputs.data, path, padding=0, normalize=False)
+    vutils.save_image(outputs.data, path, padding=0, normalize=True)
+    # if opts.psnr:
+    #     outputs = torch.squeeze(outputs_back)
+    #     outputs = outputs.permute(1, 2, 0).to('cpu', torch.float32).numpy()
+    #     # outputs = outputs.mul_(255).add_(0.5).clamp_(0, 255).permute(1, 2, 0).to('cpu', torch.uint8).numpy()
+    #     ref = Image.open(opts.ref).convert('RGB')
+    #     ref = np.array(ref) / 255.
+    #     noi = Image.open(opts.input).convert('RGB')
+    #     noi = np.array(noi) / 255.
+    #     rmpad_h = noi.shape[0] % 4
+    #     rmpad_w = noi.shape[1] % 4
+
+    #     pad_h = ref.shape[0] % 4
+    #     pad_w = ref.shape[1] % 4
+
+        # if rmpad_h != 0 or pad_h != 0:
+        #     noi = noi[0:noi.shape[0]-rmpad_h,:,:]
+        #     ref = ref[0:ref.shape[0]-pad_h,:,:]
+        # if rmpad_w != 0 or pad_w != 0:
+        #     noi = noi[:, 0:noi.shape[1]-rmpad_w,:]
+        #     ref = ref[:, 0:ref.shape[1]-pad_w,:]
+            
+        # psnr = compare_psnr(ref, outputs)
+        # ssim = compare_ssim(ref, outputs, multichannel=True)
+        # print('psnr:{}, ssim:{}'.format(psnr, ssim))
+        # plt.figure('ref')
+        # plt.imshow(ref, interpolation='nearest')
+        # plt.figure('out')
+        # plt.imshow(outputs, interpolation='nearest')
+        # plt.figure('in')
+        # plt.imshow(noi, interpolation='nearest')
+        # plt.show()
 
     
     

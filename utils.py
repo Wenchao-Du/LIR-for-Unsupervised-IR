@@ -18,6 +18,7 @@ import numpy as np
 import torch.nn.init as init
 import time
 
+
 def get_all_data_loaders(conf):
     batch_size = conf['batch_size']
     num_workers = conf['num_workers']
@@ -30,15 +31,15 @@ def get_all_data_loaders(conf):
     width = conf['crop_image_width']
 
     if 'data_root' in conf:
-        train_loader_a = get_data_loader_folder(os.path.join(conf['data_root'], 'voc_GauNoiData/voc_noidata'), batch_size, True,
+        train_loader_a = get_data_loader_folder(os.path.join(conf['data_root'], 'Celeba_A'), batch_size, True,
                                               new_size_a, height, width, num_workers, True) 
-        train_loader_b = get_data_loader_folder(os.path.join(conf['data_root'], 'vocclr_train_png'), batch_size, True,
+        train_loader_b = get_data_loader_folder(os.path.join(conf['data_root'], 'Celeba_B'), batch_size, True,
                                               new_size_b, height, width, num_workers, True)
         # train_loader_b_Clr = get_data_loader_folder_Colorjit(os.path.join(conf['data_root'], 'trainB_Clr'), batch_size, True,
         #                                       new_size_b, height, width, num_workers, True, True) # new add data process for color jitter
-        test_loader_a = get_data_loader_folder(os.path.join(conf['data_root'], 'vocnoi_test_png'), batch_size, False,
+        test_loader_a = get_data_loader_folder(os.path.join(conf['data_root'], 'Celeba_TA'), batch_size, False,
                                              new_size_a, new_size_a, new_size_a, num_workers, True)
-        test_loader_b = get_data_loader_folder(os.path.join(conf['data_root'], 'vocclr_test_png'), batch_size, False,
+        test_loader_b = get_data_loader_folder(os.path.join(conf['data_root'], 'Celeba_TB'), batch_size, False,
                                              new_size_b, new_size_b, new_size_b, num_workers, True)
     else:
         train_loader_a = get_data_loader_list(conf['data_folder_train_a'], conf['data_list_train_a'], batch_size, True,
@@ -67,13 +68,11 @@ def get_data_loader_list(root, file_list, batch_size, train, new_size=None,
 
 def get_data_loader_folder(input_folder, batch_size, train, new_size=None,
                            height=256, width=256, num_workers=4, crop=True):
-    transform_list = [transforms.ToTensor()] #
-    if train is True: 
-        transform_list = [transforms.RandomCrop((height, width))] + transform_list # RandomCrop
-        transform_list = [transforms.RandomHorizontalFlip()] + transform_list
-    else:
-        transform_list = [transforms.CenterCrop((height, width))] + transform_list
+    transform_list = [transforms.ToTensor()] # 
+    transform_list = [transforms.RandomCrop((height, width))] + transform_list if crop else transform_list # RandomCrop
     # transform_list = [transforms.Resize(new_size)] + transform_list if new_size is not None else transform_list
+    transform_list = [transforms.RandomHorizontalFlip()] + transform_list if train else transform_list
+    
     transform = transforms.Compose(transform_list)
     dataset = ImageFolder(input_folder, transform=transform)
     loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=train, drop_last=True, num_workers=num_workers)
@@ -91,8 +90,6 @@ def get_data_loader_folder_Colorjit(input_folder, batch_size, train, new_size=No
     dataset = ImageFolder(input_folder, transform=transform)
     loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=train, drop_last=True, num_workers=num_workers)
     return loader
-
-# faster data prefetcher
 
 class data_prefetcher():
     def __init__(self, loader):
@@ -134,7 +131,8 @@ def __write_images(image_outputs, display_image_num, file_name):
 
 def write_2images(image_outputs, display_image_num, image_directory, postfix):
     n = len(image_outputs)
-    __write_images(image_outputs[0:n], display_image_num, '%s/gen_a2b_%s.png' % (image_directory, postfix))
+    __write_images(image_outputs[0:n//2], display_image_num, '%s/gen_a2b_%s.jpg' % (image_directory, postfix))
+    __write_images(image_outputs[n//2:n], display_image_num, '%s/gen_b2a_%s.jpg' % (image_directory, postfix))
 
 
 def prepare_sub_folder(output_directory):
@@ -234,24 +232,33 @@ def get_model_list(dirname, key):
 
 
 def load_vgg19():
+    """ Use the model from https://github.com/abhiskk/fast-neural-style/blob/master/neural_style/utils.py """
+    # if not os.path.exists(model_dir):
+    #     os.mkdir(model_dir)
+    # if not os.path.exists(os.path.join(model_dir, 'vgg16.weight')):
+    #     if not os.path.exists(os.path.join(model_dir, 'vgg16.t7')):
+    #         os.system('wget https://www.dropbox.com/s/76l3rt4kyi3s8x7/vgg16.t7?dl=1 -O ' + os.path.join(model_dir, 'vgg16.t7'))
+    #     vgglua = load_lua(os.path.join(model_dir, 'vgg16.t7'))
+    #     vgg = Vgg16()
+    #     for (src, dst) in zip(vgglua.parameters()[0], vgg.parameters()):
+    #         dst.data[:] = src
+    #     torch.save(vgg.state_dict(), os.path.join(model_dir, 'vgg16.weight'))
+    # vgg = Vgg16()
+    # vgg.load_state_dict(torch.load(os.path.join(model_dir, 'vgg16.weight')))
     vgg = vgg_19()
     return vgg
 
 
 def vgg_preprocess(batch):
     tensortype = type(batch.data)
-    if batch.size(1) == 3:
-        (r, g, b) = torch.chunk(batch, 3, dim = 1)
-        batch = torch.cat((b, g, r), dim = 1) # convert RGB to BGR
-        batch = batch * 255       #   * 0.5  [-1, 1] -> [0, 255]
-        mean = tensortype(batch.data.size())
-        mean[:, 0, :, :] = 103.939
-        mean[:, 1, :, :] = 116.779
-        mean[:, 2, :, :] = 123.680
-        batch = batch.sub(Variable(mean)) # subtract mean
-    else:
-        batch = torch.cat((batch, batch, batch), dim = 1)
-    
+    (r, g, b) = torch.chunk(batch, 3, dim = 1)
+    batch = torch.cat((b, g, r), dim = 1) # convert RGB to BGR
+    batch = batch * 255       #   * 0.5  [-1, 1] -> [0, 255]
+    mean = tensortype(batch.data.size()).cuda()
+    mean[:, 0, :, :] = 103.939
+    mean[:, 1, :, :] = 116.779
+    mean[:, 2, :, :] = 123.680
+    batch = batch.sub(Variable(mean)) # subtract mean
     return batch
 
 

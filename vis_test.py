@@ -2,6 +2,10 @@ import torch
 import torchvision
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets, transforms
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+from skimage.measure import compare_psnr, compare_ssim
 
 def main():
     # Writer will output to ./runs/ directory by default
@@ -20,5 +24,27 @@ def main():
     writer.add_graph(model, images)
     writer.close()
 
+def vis_mayo(folder, gtfolder):
+    filelist = os.listdir(folder)
+    count = len(filelist)
+    psnr = 0
+    ssim = 0
+    for file in filelist:
+        mat = np.load(folder + '\\' + file)
+        gtmat = np.load(gtfolder + '\\' + file)
+        mat = np.clip(mat, 0, 1)
+        psnr += compare_psnr(gtmat, mat)
+        ssim += compare_ssim(gtmat, mat)
+        savename = folder + '\\' + file.replace('npy', 'png')
+        plt.imsave(savename, mat, vmin=860 /3000, vmax=1260/3000, cmap='gray')
+        # plt.figure('dn')
+        # plt.imshow(mat, , )
+        # plt.figure('gt')
+        # plt.imshow(gtmat, cmap='gray', vmin=860 /3000, vmax=1260/3000)
+        # plt.show()
+    print('psnr: {}  ssim: {}'.format(psnr / count, ssim/count))
+
 if __name__ == '__main__':
-    main()
+    folder = 'K:\\Dual_UNIT\\outputs\\Mayo\\UNIR'
+    gtfolder = 'K:\\deep-image-prior\\data\\mdata\\clean'
+    vis_mayo(folder, gtfolder)

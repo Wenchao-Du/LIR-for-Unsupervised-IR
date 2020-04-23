@@ -8,6 +8,7 @@ from skimage import io as IO
 
 def default_loader(path):
     return Image.open(path).convert('RGB')
+    IO.imread()
     
 
 def default_flist_reader(flist):

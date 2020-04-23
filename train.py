@@ -5,7 +5,7 @@ Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses
 from utils import get_all_data_loaders, prepare_sub_folder, write_html, write_loss, get_config, write_2images, Timer, data_prefetcher
 import argparse
 from torch.autograd import Variable
-from trainer import UNIT_Trainer
+from trainer import MUNIT_Trainer, UNIT_Trainer
 import torch.backends.cudnn as cudnn
 import torch
 import torchvision
@@ -22,9 +22,10 @@ import shutil
 import random
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--config', type=str, default='configs/unit_noise2self.yaml', help='Path to the config file.')
+parser.add_argument('--config', type=str, default='configs/unit_noise2clear-bn-Deblur.yaml', help='Path to the config file.')
 parser.add_argument('--output_path', type=str, default='.', help="outputs path")
 parser.add_argument("--resume", action="store_true")
+parser.add_argument('--trainer', type=str, default='UNIT', help="MUNIT|UNIT")
 opts = parser.parse_args()
 
 def main():
@@ -34,6 +35,8 @@ def main():
     max_iter = config['max_iter']
     display_size = config['display_size']
     config['vgg_model_path'] = opts.output_path
+
+    # Setup model and data loader
     trainer = UNIT_Trainer(config)
     if torch.cuda.is_available():
         trainer.cuda(config['gpuID'])
@@ -45,7 +48,7 @@ def main():
     output_directory = os.path.join(opts.output_path + "/outputs", model_name)
     checkpoint_directory, image_directory = prepare_sub_folder(output_directory)
     shutil.copy(opts.config, os.path.join(output_directory, 'config.yaml')) # copy config file to output folder
-    
+
     print('start training !!')
     # Start training
     iterations = trainer.resume(checkpoint_directory, hyperparameters=config) if opts.resume else 0
@@ -64,20 +67,21 @@ def main():
             dataA = TraindataA.next()
             dataB = TraindataB.next()
         with Timer("Elapsed time in update: %f"):
+            # Main training code
+            for _ in range(3):
+                trainer.content_update(dataA, dataB, config)
             trainer.dis_update(dataA, dataB, config)
-            trainer.gen_update(dataA, config)
+            trainer.gen_update(dataA, dataB, config)
             # torch.cuda.synchronize()
-
+        trainer.update_learning_rate()
             # Dump training stats in log file
         if (iterations + 1) % config['log_iter'] == 0:
             print("Iteration: %08d/%08d" % (iterations + 1, max_iter))
             write_loss(iterations, trainer, writer)
-            # writer.add_graph(trainer, (dataA, dataB))
-            # Write images
         if (iterations + 1) % config['image_save_iter'] == 0:
             testa = testdataA.next()
             testb = testdataB.next()
-            if testa is None or testb is None:
+            if dataA is None or dataB is None or dataA.size(0) != display_size or dataB.size(0) != display_size:
                 testdataA = data_prefetcher(test_loader_a) 
                 testdataB = data_prefetcher(test_loader_b)
                 testa = testdataA.next()
@@ -85,10 +89,11 @@ def main():
             with torch.no_grad():
                 test_image_outputs = trainer.sample(testa, testb)
                 train_image_outputs = trainer.sample(dataA, dataB)
+            if test_image_outputs is not None and train_image_outputs is not None:
                 write_2images(test_image_outputs, display_size, image_directory, 'test_%08d' % (iterations + 1))
                 write_2images(train_image_outputs, display_size, image_directory, 'train_%08d' % (iterations + 1))
                 # HTML
-                # write_html(output_directory + "/index.html", iterations + 1, config['image_save_iter'], 'images')
+                write_html(output_directory + "/index.html", iterations + 1, config['image_save_iter'], 'images')
 
         if (iterations + 1) % config['image_display_iter'] == 0:
             with torch.no_grad():
@@ -99,7 +104,7 @@ def main():
             # Save network weights
         if (iterations + 1) % config['snapshot_save_iter'] == 0:
             trainer.save(checkpoint_directory, iterations)
-        trainer.update_learning_rate()
+
         iterations += 1
         if iterations >= max_iter:
             writer.close()

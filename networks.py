@@ -1,7 +1,3 @@
-"""
-Copyright (C) 2018 NVIDIA Corporation.  All rights reserved.
-Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
-"""
 from torch import nn
 from torch.autograd import Variable
 import torch
@@ -39,8 +35,8 @@ class MsImageDis(nn.Module):
         cnn_x = []
         cnn_x += [Conv2dBlock(self.input_dim, dim, 4, 2, 1, norm='none', activation=self.activ, pad_type=self.pad_type)]
         for _ in range(self.n_layer - 1):
-            cnn_x += [Conv2dBlock(dim, dim, 4, 2, 1, norm=self.norm, activation=self.activ, pad_type=self.pad_type)]
-            # dim *= 2
+            cnn_x += [Conv2dBlock(dim, dim * 2, 4, 2, 1, norm=self.norm, activation=self.activ, pad_type=self.pad_type)]
+            dim *= 2
         cnn_x += [nn.Conv2d(dim, 1, 1, 1, 0)]
         cnn_x = nn.Sequential(*cnn_x)
         return cnn_x
@@ -169,16 +165,16 @@ class LeakyReLUConv2d(nn.Module):
     def forward(self, x):
         return self.model(x)
 ####################################################################
-#-------------------------Representation Discriminator -------------
+#------------------------- Discriminators --------------------------
 ####################################################################
 class Dis_content(nn.Module):
     def __init__(self):
         super(Dis_content, self).__init__()
         model = []
-        model += [LeakyReLUConv2d(3, 32, kernel_size=3, stride=2, padding=1, norm='None')] # Instance
-        model += [LeakyReLUConv2d(32, 64, kernel_size=3, stride=2, padding=1, norm='None')]
-        model += [LeakyReLUConv2d(64, 128, kernel_size=3, stride=2, padding=1, norm='None')]
-        model += [LeakyReLUConv2d(128, 256, kernel_size=3, stride=2, padding=1, norm='None')]
+        model += [LeakyReLUConv2d(256, 256, kernel_size=3, stride=2, padding=1, norm='None')] # Instance
+        model += [LeakyReLUConv2d(256, 256, kernel_size=3, stride=2, padding=1, norm='None')]
+        model += [LeakyReLUConv2d(256, 256, kernel_size=3, stride=2, padding=1, norm='None')]
+        model += [LeakyReLUConv2d(256, 256, kernel_size=3, stride=2, padding=1, norm='None')]
         # model += [LeakyReLUConv2d(256, 256, kernel_size=4, stride=1, padding=0)]
         model += [nn.AdaptiveAvgPool2d(1)]
         model += [nn.Conv2d(256, 1, kernel_size=1, stride=1, padding=0)]
@@ -206,7 +202,7 @@ class AdaINGen(nn.Module):
         mlp_dim = params['mlp_dim']
 
         # style encoder
-        self.enc_style = NoiseEncoder(4, input_dim, dim, style_dim, norm='none', activ=activ, pad_type=pad_type)
+        self.enc_style = StyleEncoder(4, input_dim, dim, style_dim, norm='none', activ=activ, pad_type=pad_type)
 
         # content encoder
         self.enc_content = ContentEncoder(n_downsample, n_res, input_dim, dim, 'in', activ, pad_type=pad_type)
@@ -292,7 +288,7 @@ class VAEGen(nn.Module):
 
 class NoiseEncoder(nn.Module):
     def __init__(self, n_downsample, input_dim, dim, style_dim, norm, activ, pad_type):
-        super(NoiseEncoder, self).__init__()
+        super(StyleEncoder, self).__init__()
         self.model = []
         self.model += [Conv2dBlock(input_dim, dim, 7, 1, 3, norm=norm, activation=activ, pad_type=pad_type)]
         for _ in range(2):
@@ -556,14 +552,13 @@ class LayerNorm(nn.Module):
 
     def forward(self, x):
         shape = [-1] + [1] * (x.dim() - 1)
-        # print(x.size())
-        if x.size(0) == 1:
-            # These two lines run much faster in pytorch 0.4 than the two lines listed below.
-            mean = x.view(-1).mean().view(*shape)
-            std = x.view(-1).std().view(*shape)
-        else:
-            mean = x.view(x.size(0), -1).mean(1).view(*shape)
-            std = x.view(x.size(0), -1).std(1).view(*shape)
+        # if x.size(0) == 1:
+        #     # These two lines run much faster in pytorch 0.4 than the two lines listed below.
+        #     mean = x.view(-1).mean().view(*shape)
+        #     std = x.view(-1).std().view(*shape)
+        # else:
+        mean = x.view(x.size(0), -1).mean(1).view(*shape)
+        std = x.view(x.size(0), -1).std(1).view(*shape)
 
         x = (x - mean) / (std + self.eps)
 

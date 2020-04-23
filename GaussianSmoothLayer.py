@@ -4,7 +4,6 @@ import torch
 from torch import nn as nn
 from torch.nn import functional as F
 import matplotlib.pyplot as plt 
-import matplotlib.image as image
 import numpy as np
 import cv2
 import torchvision.transforms as transforms
@@ -149,24 +148,26 @@ def testPIL(file1, file2):
                                     ])
     image11 = transform(Image.open(file1).convert('RGB')).unsqueeze(0)
     image22 = transform(Image.open(file2).convert('RGB')).unsqueeze(0)
-    blurkernel = GaussionSmoothLayer(3, 15, 25)
+    # blurkernel = GaussionSmoothLayer(3, 11, 15)
     # gradloss = LapLasGradient(3, 3)
-    # gradloss2 = GradientLoss(3,3)
-    image1 = blurkernel(image11)
-    image2 = blurkernel(image22)
-    # image1 = gradloss2(image11)
+    gradloss2 = GradientLoss(3,3)
+    # image1 = blurkernel(image11)
+    image1 = gradloss2(image11)
     image1 = image1.numpy().squeeze()
     image1 = np.transpose(image1, (1,2,0))
+    # image2 = blurkernel(image22)
+    image2 = gradloss2(image22)
     image2 = image2.numpy().squeeze()
     image2 = np.transpose(image2, (1,2,0))
-    msevalue = np.mean(np.abs(image2 - image1))
-    image.imsave('testmat\\im1-15.png', image1)
-    image.imsave('testmat\\im2-15.png', image2)
-    print(msevalue)
+    plt.figure('1')
+    plt.imshow(image1, interpolation='nearest')
+    plt.figure('2')
+    plt.imshow(image2, interpolation='nearest')
+    plt.show()
 
 if __name__ == "__main__":
-    file1 = 'testmat\\58-1c.png'
-    file2 = 'testmat\\58-1n.png'
+    file1 = 'K:\\EDNGAN\\results\\expimages\\504\\hdtestRed_ssim_.png'
+    file2 = 'K:\\EDNGAN\\results\\expimages\\504\\ldtestRed_ssim_.png'
     # main(file1, file2)
     testPIL(file1, file2)
     
