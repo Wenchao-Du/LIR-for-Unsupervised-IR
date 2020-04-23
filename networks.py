@@ -261,8 +261,9 @@ class VAEGen(nn.Module):
         pad_type = params['pad_type']
 
         # content encoder
-        self.enc = ContentEncoder(n_downsample, n_res, input_dim, dim, 'bn', activ, pad_type=pad_type) # 'in'
-        self.styc = NoiseEncoder(n_downsample, input_dim, dim, self.enc.output_dim, 'bn', activ, pad_type = pad_type) # add style encoder
+        # Replace traditional instance normalization layer (IN) for image translation with batch normalization (BN). 
+        self.enc = ContentEncoder(n_downsample, n_res, input_dim, dim, 'bn', activ, pad_type=pad_type) # replace 'in' with 'bn'
+        self.styc = NoiseEncoder(n_downsample, input_dim, dim, self.enc.output_dim, 'bn', activ, pad_type = pad_type) # use similar codes with style encoder
         self.dec_cont = Decoder(n_downsample, n_res, self.enc.output_dim, input_dim, res_norm='bn', activ=activ, pad_type=pad_type) # 'in'
         self.dec_recs = Decoder(n_downsample, n_res, 2 * self.enc.output_dim, input_dim, res_norm='bn', activ=activ, pad_type=pad_type) # 'in'
 
@@ -288,7 +289,7 @@ class VAEGen(nn.Module):
 
 class NoiseEncoder(nn.Module):
     def __init__(self, n_downsample, input_dim, dim, style_dim, norm, activ, pad_type):
-        super(StyleEncoder, self).__init__()
+        super(NoiseEncoder, self).__init__()
         self.model = []
         self.model += [Conv2dBlock(input_dim, dim, 7, 1, 3, norm=norm, activation=activ, pad_type=pad_type)]
         for _ in range(2):

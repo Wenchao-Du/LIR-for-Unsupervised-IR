@@ -1,4 +1,4 @@
-# The CODE is implemented for unir, which is altered by "UNIT" (NIPS 2016)
+# The CODE is implemented for unir, which is updated based on "UNIT" (NIPS 2016)
 # author: Wenchao. Du
 
 from networks import AdaINGen, MsImageDis, Dis_content, VAEGen
